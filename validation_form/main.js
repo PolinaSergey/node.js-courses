@@ -2,9 +2,8 @@ const express = require("express");
 
 const webserver = express();
 
-webserver.use(express.urlencoded({extended:true}));
+webserver.use(express.urlencoded({ extended:true }));
 
-const SERVER_URL = "http://localhost"; // change for remote server
 const PORT = 8380;
 
 const removeHTML = (text) => {
@@ -21,7 +20,7 @@ const removeHTML = (text) => {
 
 
 const getDataForm = (data, errors) => `
-<form method="POST" action="${SERVER_URL}:${PORT}/send">
+<form method="POST" action="/send">
     <label for="name">Имя: </label>
     <input type="text" name="name" value="${removeHTML(data.name)}">
     <span style="color:red">${errors && errors.name || ""}</span>
@@ -58,7 +57,7 @@ const errorsMap = {
     "notEmail": "Невалидный email",
 }
 
-webserver.get("", (req, res) => {
+webserver.get("/", (req, res) => {
     const pureForm = getDataForm({}, null)
     res.send(pureForm);
 });

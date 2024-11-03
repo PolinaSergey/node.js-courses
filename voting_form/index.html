@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ru">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Голосование</title>
+        <script type="text/javascript">
+            let variants = null;
+
+            const getData = (path, method) => {
+                return fetch(path, { method })
+                    .then((res) => res.json())
+                    .catch((error) => {
+                        console.error(error);
+                        return [];
+                    });
+            }
+
+            const getVariants = () => getData("variants", "get");
+            const getStatistics = () => getData("statistics", "post");
+
+            const displayStatistics = (drinks) => {
+                const statisticsContainerElement = document.getElementById("statisticsContainer");
+
+                for (const drink in drinks) {
+                    const spanId = `${drink}Span`;
+                    let spanForDrink = document.getElementById(spanId);
+                    if (!spanForDrink) {
+                        spanForDrink = document.createElement("span");
+                        spanForDrink.id = spanId;
+                        const br = document.createElement("br");
+
+                        statisticsContainerElement.appendChild(spanForDrink);
+                        statisticsContainerElement.appendChild(br);
+                    }
+                    spanForDrink.innerText = `${variants[drink]}: ${drinks[drink]}`;
+                }
+            }
+
+            const submitVote = (event) => {
+                event.preventDefault();
+                const radioButtons = document.getElementsByName("drink");
+                const chosenButton = Array.from(radioButtons).find((button) => button.checked);
+                chosenButton.checked = false;
+                const reqBody = new URLSearchParams({ drink: chosenButton.value });
+                fetch("/vote", { method: "post", body: reqBody })
+                    .then((res) => res.json())
+                    .then((parsedRes) => displayStatistics(parsedRes))
+                    .catch((error) => { console.error(error) });
+            }
+
+            const displayForm = (variants) => {
+                const votingForm = document.createElement("form");
+                votingForm.onsubmit = submitVote;
+
+                for (const variant of variants) {
+                    const label = document.createElement("label");
+                    label.htmlFor = variant.code;
+                    label.innerText = variant.label;
+
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = "drink";
+                    input.id = variant.code;
+                    input.value = variant.code;
+
+                    const br = document.createElement("br")
+
+                    votingForm.appendChild(label);
+                    votingForm.appendChild(input);
+                    votingForm.appendChild(br);
+                }
+
+                const submitInput = document.createElement("input");
+                submitInput.type = "submit";
+                submitInput.value = "Проголосовать";
+                votingForm.appendChild(submitInput);
+
+                const formContainerElement = document.getElementById("votingFormContainer");
+                formContainerElement.appendChild(votingForm);
+            }
+
+            getVariants().then((res) => {
+                variants = res.reduce((obj, item) => ({ ...obj, [item.code]: item.label }), {});
+                displayForm(res);
+                getStatistics().then((res) => displayStatistics(res));
+            });
+        </script>
+    </head>
+    <body>
+        <h4 style="margin-bottom: 8px">Выберите напиток:</h4>
+        <div id="votingFormContainer"></div>
+        <h4 style="margin-bottom: 8px">Статистика:</h4>
+        <div id="statisticsContainer"></div>
+    </body>
+</html>
