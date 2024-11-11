@@ -42,6 +42,24 @@ const setStatistics = (data) => {
     return currStatistics;
 }
 
+const getStatisticsXml = (stat) => {
+    let xmlResp = "<statistics>";
+    for (const {code, label} of variants) {
+        xmlResp += `<${label}>${stat[code]}</${label}>`;
+    }
+    xmlResp += "</statistics>";
+    return xmlResp;
+}
+
+const getStatisticsHtml = (stat) => {
+    let htmlResp = "<ul>";
+    for (const {code, label} of variants) {
+        htmlResp += `<li>${label}: ${stat[code]}</li>`;
+    }
+    htmlResp += "</ul>";
+    return htmlResp;
+}
+
 webserver.get("/", (req, res) => {
     res.sendFile(path.resolve(__dirname, "index.html"));
 });
@@ -58,7 +76,23 @@ webserver.post("/vote", (req, res) => {
 
 webserver.post("/statistics", (req, res) => {
     const statistics = getStatistics();
-    res.send(JSON.stringify(statistics));
+
+    const acceptHeader = req.headers.accept;
+    if (acceptHeader === "application/json") {
+        res.setHeader("Content-Type", "application/json");
+        res.send(statistics);
+    } else if (acceptHeader === "application/xml") {
+        res.setHeader("Content-Type", "application/xml");
+        const xmlResponse = getStatisticsXml(statistics);
+        res.send(xmlResponse);
+    } else if (acceptHeader === "text/html") {
+        res.setHeader("Content-Type", "text/html");
+        const htmlResponse = getStatisticsHtml(statistics);
+        res.send(htmlResponse);
+    } else {
+        res.setHeader("Content-Type", "text/plain");
+        res.send(JSON.stringify(statistics));
+    }
 });
 
 webserver.listen(PORT,()=> {

@@ -6,8 +6,8 @@
         <script type="text/javascript">
             let variants = null;
 
-            const getData = (path, method) => {
-                return fetch(path, { method })
+            const getVariants = () => {
+                return fetch("variants", { method: "get" })
                     .then((res) => res.json())
                     .catch((error) => {
                         console.error(error);
@@ -15,8 +15,20 @@
                     });
             }
 
-            const getVariants = () => getData("variants", "get");
-            const getStatistics = () => getData("statistics", "post");
+            const getStatistics = (format) => {
+                return fetch("statistics", { method: "post", headers: { "Accept": format }})
+                    .then((res) => {
+                        if (format === "application/json") {
+                            return res.json();
+                        } else {
+                            return res.text();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                        return [];
+                    });
+            }
 
             const displayStatistics = (drinks) => {
                 const statisticsContainerElement = document.getElementById("statisticsContainer");
@@ -82,8 +94,33 @@
             getVariants().then((res) => {
                 variants = res.reduce((obj, item) => ({ ...obj, [item.code]: item.label }), {});
                 displayForm(res);
-                getStatistics().then((res) => displayStatistics(res));
+                getStatistics("application/json").then((res) => displayStatistics(res));
             });
+
+            /////////////////////////////////////////////////////////////////////////////////
+            const downloadResults = (data, filename) => {
+                const fakebtn = document.createElement("a");
+                fakebtn.href = window.URL.createObjectURL(new Blob([data]));
+                fakebtn.download = filename;
+                fakebtn.click();
+            }
+
+            const getXMLStatistics = () => {
+                getStatistics("application/xml")
+                    .then((res) => { downloadResults(res, "statistics.xml") });
+            }
+
+            const getHTMLStatistics = () => {
+                getStatistics("text/html")
+                    .then((res) => { downloadResults(res, "statistics.html")});
+            }
+            const getJSONStatistics = () => {
+                getStatistics("application/json")
+                    .then((res) => {
+                        const formattedData = JSON.stringify(res);
+                        downloadResults(formattedData, "statistics.json");
+                    });
+            }
         </script>
     </head>
     <body>
@@ -91,5 +128,9 @@
         <div id="votingFormContainer"></div>
         <h4 style="margin-bottom: 8px">Статистика:</h4>
         <div id="statisticsContainer"></div>
+        <h4 style="margin-bottom: 8px">Скачать статистику:</h4>
+        <input type="button" onclick="getXMLStatistics()" value="XML">
+        <input type="button" onclick="getHTMLStatistics()" value="HTML">
+        <input type="button" onclick="getJSONStatistics()" value="JSON">
     </body>
 </html>
